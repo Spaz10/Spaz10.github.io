@@ -28,6 +28,9 @@ function initGL(canvas) {
 var squareVertexPositionBuffer;
 var squareVertexColorBuffer;
 
+
+
+
 //lines for squares
 var lineVertexPositionBuffer;
 var lineVertexColorBuffer;
@@ -44,12 +47,6 @@ var ballVertexColorBuffer;
 //for ball
 var solidVertexPositionBuffer;
 var solidVertexColorBuffer;
-
-//for sphere
-var sphereVertexPositionBuffer;
-var sphereVertexColorBuffer;
-var sphereIndexBuffer;
-var sphereVertexNormalBuffer;
 
 
 ////////////////    Initialize VBO  ////////////////////////
@@ -102,8 +99,6 @@ function initBuffers() {
     initCircle(36);
     initBall(36);
     initSolid(36);
-    initSphere();
-    initCube();
 }
 
 ///////////////////////////////////////////////////////////////////
@@ -250,277 +245,6 @@ function initSolid(k) {
     solidVertexColorBuffer.numItems = k + 2;
 }
 
-
-
-
-var sphereVertices = [];
-var sphereIndices = [];
-var sphereColors = [];
-var offset = { numItems: 0, topOffset: 0.0, botOffset: 0.0 };
-var sphereNormals = [];
-
-///////////////////////////////////////////////////////////////////
-// Init helper method for sphere/ new Head of robot
-//////////////////////////////////////////////////////////////////
-function initSphere() {
-    var numslices = 32;
-    var numstacks = 32;
-    var radius = 0.5;
-    var color = [1, 1, 0, 1.0];
-
-    for (i = 1; i <= numstacks - 2; i++) {
-
-        //create vertices
-        var h = (2 * radius) * (i / (numstacks - 1)) - radius;
-        var r = Math.sqrt(Math.pow(radius, 2) - Math.pow(h, 2));
-
-        createCircle(r, h, numslices, color);
-    }
-
-    sphereVertices = sphereVertices.concat([0, 0, radius]);
-    sphereNormals = sphereNormals.concat([0, 0, 1]);
-    sphereColors = sphereColors.concat(color);
-    sphereVertices = sphereVertices.concat([0, 0, -radius]);
-    sphereNormals = sphereNormals.concat([0, 0, -1]);
-    sphereColors = sphereColors.concat(color);
-
-    //find indices
-    for (j = 1; j < numstacks - 2; j++) {
-        for (i = 0; i <= numslices; i++) {
-            var indexA = i + 1 + (j - 1) * (numslices + 2);
-            var indexB = numslices + 3 + i + (j - 1) * (numslices + 2);
-            sphereIndices.push(indexA);
-            sphereColors = sphereColors.concat(color);
-            sphereIndices.push(indexB);
-            sphereColors = sphereColors.concat(color);
-        }
-    }
-
-    offset.numItems = sphereIndices.length;
-    offset.topOffset = sphereIndices.length;
-    var topPoint = (sphereVertices.length / 3) - 2;
-    sphereIndices.push(topPoint);
-
-    for (i = topPoint - (numslices + 1); i < topPoint; i++) {
-        sphereIndices.push(i);
-    }
-
-    offset.botOffset = sphereIndices.length;
-    var botPoint = (sphereVertices.length / 3) - 1;
-    sphereIndices.push(botPoint);
-    for (i = 1; i <= numslices + 1; i++) {
-        sphereIndices.push(i);
-    }
-
-    sphereVertexPositionBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, sphereVertexPositionBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(sphereVertices), gl.STATIC_DRAW);
-    sphereVertexPositionBuffer.itemSize = 3;
-    sphereVertexPositionBuffer.numItems = sphereVertices.length / 3;
-
-    sphereVertexNormalBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, sphereVertexNormalBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(sphereNormals), gl.STATIC_DRAW);
-    sphereVertexNormalBuffer.itemSize = 3;
-    sphereVertexNormalBuffer.numItems = sphereNormals.length / 3;
-
-    sphereIndexBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, sphereIndexBuffer);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(sphereIndices), gl.STATIC_DRAW);
-    sphereIndexBuffer.numItems = offset.numItems;
-    sphereIndexBuffer.topOffset = offset.topOffset;
-    sphereIndexBuffer.botOffset = offset.botOffset;
-
-    sphereVertexColorBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, sphereVertexColorBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(sphereColors), gl.STATIC_DRAW);
-    sphereVertexColorBuffer.itemSize = 4;
-    sphereVertexColorBuffer.numItems = sphereColors.length / 4;
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-// Helper method to create circles for the sphere
-// Logic is similar to initCirle from lab2
-//////////////////////////////////////////////////////////////////////////
-
-
-function createCircle(radius, height, nslices, color) {
-    var circleCenterData = { x: 0, y: 0, r: 0 };
-    circleCenterData.r = radius
-    var zVal = height;
-    var numberOfItems = 3;
-    var numberOfTriangleFans = nslices;
-    var degreesPerFan = (2 * Math.PI) / numberOfTriangleFans;
-    var circleVertexData = [circleCenterData.x, circleCenterData.y, zVal];
-    var circleNormalData = [0, 0, 0];
-    var colors = [];
-    colors = colors.concat(color)
-
-    for (var i = 0; i <= numberOfTriangleFans; i++) {
-        var vertexDataIndex = numberOfItems * i + 3;
-        var currentAngle = degreesPerFan * (i + 1);
-
-        var x = (Math.cos(currentAngle) * circleCenterData.r) + circleCenterData.x;
-        var y = (Math.sin(currentAngle) * circleCenterData.r) + circleCenterData.y;
-        var z = zVal;
-        circleVertexData[vertexDataIndex] = x;
-        circleVertexData[vertexDataIndex + 1] = y;
-        circleVertexData[vertexDataIndex + 2] = z;
-
-        var position = [x, y, z];
-        position[0] = position[0] / circleCenterData.r;
-        position[1] = position[1] / circleCenterData.r;
-        position[2] = position[2] / circleCenterData.r;
-        circleNormalData = circleNormalData.concat(position);
-
-        colors = colors.concat(color);
-    }
-
-
-    sphereVertices = sphereVertices.concat(circleVertexData);
-    sphereNormals = sphereNormals.concat(circleNormalData);
-    sphereColors = sphereColors.concat(colors);
-}
-
-//////////////////////////////////////////////////////
-// Helper method for init cube
-/////////////////////////////////////////////////////
-
-function initCube() {
-    squareVertexPositionBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
-
-    cube(0.5, [1.0, 0.5, 0.3, 1.0]);
-
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(squarVertices), gl.STATIC_DRAW);
-    squareVertexPositionBuffer.itemSize = 3;
-    squareVertexPositionBuffer.numItems = 24;
-
-    squareVertexIndexBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, squareVertexIndexBuffer);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(squareIndices), gl.STATIC_DRAW);
-    squareVertexIndexBuffer.itemsize = 1;
-    squareVertexIndexBuffer.numItems = 36;
-
-    squareVertexNormalBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexNormalBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(squareNormals), gl.STATIC_DRAW);
-    squareVertexNormalBuffer.itemSize = 3;
-    squareVertexNormalBuffer.numItems = 24;
-
-    squareVertexColorBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexColorBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(squareColors), gl.STATIC_DRAW);
-    squareVertexColorBuffer.itemSize = 4;
-    squareVertexColorBuffer.numItems = 24;
-}
-/////////////////////////////////////////////////////
-// Helper method for cube initBuffers
-////////////////////////////////////////////////////
-var squarVertices = [];
-var squareIndices = [];
-var squareNormals = [];
-var squareColors = [];
-function cube(size, color) {
-    squarVertices = [
-        //Front Face
-        -size, -size, size,
-        size, -size, size,
-        size, size, size,
-        -size, size, size,
-
-        //Back Face
-        -size, -size, -size,
-        -size, size, -size,
-        size, size, -size,
-        size, -size, -size,
-
-        //Top Face
-        -size, size, -size,
-        -size, size, size,
-        size, size, size,
-        size, size, -size,
-
-        //Bottom Face
-        -size, -size, -size,
-        size, -size, -size,
-        size, -size, size,
-        -size, -size, size,
-
-        //Right Face
-        size, -size, -size,
-        size, size, -size,
-        size, size, size,
-        size, -size, size,
-
-        //Left Face       
-        -size, -size, -size,
-        -size, -size, size,
-        -size, size, size,
-        -size, size, -size,
-    ]
-
-    squareNormals = [
-        // Front
-        0.0, 0.0, 1.0,
-        0.0, 0.0, 1.0,
-        0.0, 0.0, 1.0,
-        0.0, 0.0, 1.0,
-        // Back
-        0.0, 0.0, -1.0,
-        0.0, 0.0, -1.0,
-        0.0, 0.0, -1.0,
-        0.0, 0.0, -1.0,
-        // Top
-        0.0, 1.0, 0.0,
-        0.0, 1.0, 0.0,
-        0.0, 1.0, 0.0,
-        0.0, 1.0, 0.0,
-        // Bottom
-        0.0, -1.0, 0.0,
-        0.0, -1.0, 0.0,
-        0.0, -1.0, 0.0,
-        0.0, -1.0, 0.0,
-        // Right
-        1.0, 0.0, 0.0,
-        1.0, 0.0, 0.0,
-        1.0, 0.0, 0.0,
-        1.0, 0.0, 0.0,
-        // Left
-        -1.0, 0.0, 0.0,
-        -1.0, 0.0, 0.0,
-        -1.0, 0.0, 0.0,
-        -1.0, 0.0, 0.0
-    ];
-
-    squareIndices = [
-        // front triangles
-        0, 1, 2,
-        0, 2, 3,
-        // back triangles
-        4, 5, 6,
-        4, 6, 7,
-        // top triangles
-        8, 9, 10,
-        8, 10, 11,
-        // bottom triangles
-        12, 13, 14,
-        12, 14, 15,
-        // right triangles 
-        16, 17, 18,
-        16, 18, 19,
-        // left triangles 
-        20, 21, 22,
-        20, 22, 23
-    ];
-
-    for (i = 0; i < 24; i++) {
-        squareColors = squareColors.concat(color)
-    }
-}
-
-
 //////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////
 
@@ -627,44 +351,6 @@ function draw_solid(matrix) {
 
 }
 
-function drawCube(matrix) {
-    setMatrixUniforms(matrix);   // pass the modelview mattrix and projection matrix to the shader
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
-    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, squareVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexNormalBuffer);
-    gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, squareVertexNormalBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexColorBuffer);
-    gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, squareVertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-    // draw elementary arrays - triangle indices 
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, squareVertexIndexBuffer);
-    gl.drawElements(gl.TRIANGLES, squareVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
-}
-
-
-
-function drawSphere(matrix) {
-    setMatrixUniforms(matrix);   // pass the modelview mattrix and projection matrix to the shader
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, sphereVertexPositionBuffer);
-    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, sphereVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, sphereVertexNormalBuffer);
-    gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, sphereVertexNormalBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, sphereVertexColorBuffer);
-    gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, sphereVertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, sphereIndexBuffer);
-    gl.drawElements(gl.TRIANGLE_STRIP, sphereIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
-    gl.drawElements(gl.TRIANGLE_FAN, sphereIndexBuffer.botOffset - sphereIndexBuffer.topOffset, gl.UNSIGNED_SHORT, 2 * sphereIndexBuffer.topOffset);
-    gl.drawElements(gl.TRIANGLE_FAN, sphereIndices.length - sphereIndexBuffer.botOffset, gl.UNSIGNED_SHORT, 2 * sphereIndexBuffer.botOffset);
-}
-
-
 ////////////////////////////////////////////////////////////////////////////////////////
 // Draw helper method for background/static drawBackgroungObjects separate from robot
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -706,8 +392,6 @@ function drawScene() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
 
-
-
     drawBackgroungObjects();
 
 
@@ -715,14 +399,9 @@ function drawScene() {
     var model = mat4.create();
     mat4.identity(model);
 
-
-
-
-
-
     //Head
     model = mat4.multiply(model, mvBodyMatrix);
-    drawSphere(model);
+    draw_ball(model);
 
 
     //body
