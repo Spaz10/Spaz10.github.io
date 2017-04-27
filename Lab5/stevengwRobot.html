@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+    <title>stevengw - lab4</title>
+    <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+
+    <script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
+
+    <!--  ************** Fragment Shader ************* -->
+    <script id="shader-fs" type="x-shader/x-fragment">
+    precision mediump float;
+
+    uniform mat4 uMMatrix; 
+    uniform mat4 uVMatrix;
+    uniform mat4 uPMatrix;
+    uniform mat4 uNMatrix; 
+
+    uniform vec4 light_pos; 
+    uniform vec4 ambient_coef;
+    uniform vec4 diffuse_coef;
+    uniform vec4 specular_coef;
+    uniform float mat_shininess; 
+
+    uniform vec4 light_ambient; 
+    uniform vec4 light_diffuse; 
+    uniform vec4 light_specular;
+
+    varying vec4 world2eye; 
+    varying vec3 v_normal;
+    varying vec4 vColor; 
+
+    void main(void) {
+       
+
+	    vec4 light_world2eye = light_pos;
+
+        vec3 light_vector = normalize(vec3(light_world2eye - world2eye));     
+        vec3 eye_vector = normalize(-vec3(world2eye));
+        vec3 halfv = normalize(light_vector+eye_vector);
+
+    
+        vec4 ambient = ambient_coef * light_ambient; 
+        float ndotl = max(dot(v_normal, light_vector), 0.0);
+
+        vec4 diffuse = diffuse_coef * light_diffuse* ndotl;
+        vec3 R= normalize(vec3(reflect(-light_vector, v_normal)));
+        float rdotv = max(dot(R, eye_vector), 0.0);
+
+        vec4 specular;  
+        if (ndotl>0.0) {
+            specular = specular_coef* light_specular*pow(rdotv, mat_shininess); 
+        } else {
+            specular = vec4(0,0,0,1);   
+        }
+
+	    gl_FragColor = (ambient+diffuse+specular)*vColor;
+    }
+    </script>
+
+    <!--  ************** Vertex Shader ************* -->
+    <script id="shader-vs" type="x-shader/x-vertex">
+
+    precision mediump float;
+    attribute vec3 aVertexPosition;
+    attribute vec3 aVertexNormal;
+    attribute vec4 aVertexColor;
+
+    uniform mat4 uMMatrix; 
+    uniform mat4 uVMatrix;
+    uniform mat4 uPMatrix;
+    uniform mat4 uNMatrix; 
+
+    uniform vec4 light_pos; 
+    uniform vec4 ambient_coef;
+    uniform vec4 diffuse_coef;
+    uniform vec4 specular_coef;
+    uniform float mat_shininess; 
+
+    uniform vec4 light_ambient;
+    uniform vec4 light_diffuse; 
+    uniform vec4 light_specular;
+
+     
+    varying vec4 world2eye; 
+    varying vec3 v_normal;  
+    varying vec4 vColor; 
+
+    void main(void) {
+	    v_normal =normalize(vec3(uNMatrix*vec4(aVertexNormal,0.0)));
+
+        world2eye = uVMatrix*uMMatrix*vec4(aVertexPosition, 1.0);
+
+        gl_Position = uPMatrix*uVMatrix*uMMatrix*vec4(aVertexPosition, 1.0);
+
+        vColor = aVertexColor;
+    }
+    </script>
+
+    <script type="text/javascript" src="shaders_setup2.js"></script>
+    <script type="text/javascript" src="stevengwRobot.js"></script>
+</head>
+
+<body onload="webGLStart();">
+
+    <div style="float: left;">
+    <canvas id="lab03-canvas" style="border:none;" width="625" height="625"></canvas>
+    </div>
+    <div style="float: left; padding-left: 15px">
+         <a href="stevengwLab5.html"><button>Go To See the Teapot</button></a>
+    <h4>Legless Robot Example</h4>
+        <h5>Camera:</h5>
+    <button onclick="translateCamera(1)"> Up</button>
+    <button onclick="translateCamera(2)"> Down</button>
+    <button onclick="translateCamera(3)"> Left</button>
+    <button onclick="translateCamera(4)"> Right</button>
+    <br>
+    <button onclick="rotateCamera(1)"> Pan (roll) 15 degrees </button></br>
+    <button onclick="rotateCamera(2)"> Pan (roll) -15 degrees </button>
+
+    <h5>Center Of Interest:</h5>
+    <button onclick="translateCOI(1)"> Up</button>
+    <button onclick="translateCOI(2)"> Down</button>
+    <button onclick="translateCOI(3)"> Left</button>
+    <button onclick="translateCOI(4)"> Right</button>
+     <h5> Movement:</h5>
+    
+    <p>Upper Left Arm:<br> u to move forward(up)<br> j to move back (down)<br> i to move left<br> k to move right<br>
+        <button onclick="rotateBody(1)"> Rotate 15 degrees </button>
+        <button onclick="rotateBody(2)"> Rotate -15 degrees </button></br>
+        <button onclick="scaleBody(1)"> Scale bigger </button>
+        <button onclick="scaleBody(2)"> Scale smaller </button>
+    </p>
+   
+    <p>Lower Left Arm:<br> U to move forward(up)<br> K to move back (down)<br> I to move left<br> J to move right<br>
+        <button onclick="rotateBody(5)"> Rotate 15 degrees </button>
+        <button onclick="rotateBody(6)"> Rotate -15 degrees </button></br>
+        <button onclick="scaleBody(5)"> Scale biggger </button>
+        <button onclick="scaleBody(6)"> Scale smaller </button>
+    </p>
+     </div>
+        <div style="float: right; padding-left: 15px">     
+    <div>
+        <h4>
+            Click and drag left mouse to rotate view
+        <br>
+            Click and drage right mouse to scale view
+        </h4>
+    </div>
+            <p>
+        Full Body:<br> f to move forward(up)<br> b to move back (down)<br> l to move left<br> r  to move right<br>
+    </p>
+    <p>
+            Lighting:<br> t to increase light/brightness<br> T to decrease light/brightness<br> y to move light forward<br> Y to move light back<br>g to move light left<br> G to move light right<br> h to move light up <br> H to move light down<br>
+    </p>
+    
+    <p> Upper Right Arm:<br> q to move forward(up)<br> a to move back (down)<br> w to move left<br> s  to move right<br>
+        <button onclick="rotateBody(3)"> Rotate 15 degrees </button>
+        <button onclick="rotateBody(4)"> Rotate -15 degrees </button></br>
+        <button onclick="scaleBody(3)"> Scale bigger </button>
+        <button onclick="scaleBody(4)"> Scale smaller </button>
+    </p>
+    <p>Lower Right Arm:<br> Q to move forward(up)<br>A to move back (down)<br> W to move left<br> S to move right<br>
+        <button onclick="rotateBody(7)"> Rotate 15 degrees </button>
+        <button onclick="rotateBody(8)"> Rotate -15 degrees </button></br>
+        <button onclick="scaleBody(7)"> Scale bigger </button>
+        <button onclick="scaleBody(8)"> Scale smaller </button>
+    </p>
+    </div>
+</body>
+</html>

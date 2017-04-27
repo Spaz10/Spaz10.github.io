@@ -1,0 +1,179 @@
+
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <title>stevensgw - Lab5 teapot </title>
+<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+
+<script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
+
+<!--  ************** Fragment Shader Cubemap ************* --> 
+<script id="shader-fs-sb" type="x-shader/x-fragment" >
+     precision mediump float;
+     varying vec3 vCoords;
+     uniform samplerCube skybox;
+     void main() {
+          gl_FragColor = textureCube(skybox, vCoords);
+     }
+</script>
+
+<!--  ************** Vertex Shader Cubemap ************* --> 
+<script type="x-shader/x-vertex" id="shader-vs-sb">
+     uniform mat4 ePMatrix;
+     uniform mat4 eMMatrix;
+     uniform mat4 eVMatrix;
+     attribute vec3 aVertex;
+     varying vec3 vCoords;
+     void main() {
+        vec4 eyeCoords = eVMatrix * eMMatrix * vec4(aVertex,1.0);
+        gl_Position = ePMatrix * eyeCoords;
+        vCoords = aVertex;
+     }
+</script>
+
+<!--  ************** Fragment Shader ************* --> 
+<script id="shader-fs" type="x-shader/x-fragment">
+precision highp float;
+   uniform vec3 light_pos; 
+   uniform vec4 ambient_coef;
+   uniform vec4 diffuse_coef;
+   uniform vec4 specular_coef;
+   uniform float mat_shininess; 
+
+   uniform vec4 light_ambient; 
+   uniform vec4 light_diffuse; 
+   uniform vec4 light_specular;
+
+   uniform int use_texture;
+
+   uniform sampler2D myTexture;
+   uniform samplerCube cubeMap; 
+
+   uniform mat4 uV2WMatrix;
+
+   varying vec3 vEyeVec;  //vertex position in eye space 
+   varying vec3 vNormal;  // vertex normal
+   varying vec2 vTextureCoord;
+
+
+    void main(void) {
+        
+      vec3 N=normalize(vNormal);
+      vec3 L=normalize(light_pos);
+      float ndotl = dot(N, -L); 
+      vec4 ambient = ambient_coef * light_ambient; 
+      vec4 diffuse = diffuse_coef * light_diffuse* ndotl;
+       vec3 E = normalize(vEyeVec);
+        vec3 R=reflect(L, N);
+        float rdotv = max(dot(R, E), 0.0);
+      vec4  specular = specular_coef* light_specular*pow(rdotv, mat_shininess);
+     
+   
+
+      vec4 vColor = ambient+diffuse+specular;
+      vColor.a=1.0;
+      vec4 texcolor;
+      vec3 view_vector, ref; 
+      vec4 env_color = vec4(1,0,0,1);
+
+        //use a texture mapping
+        if ( use_texture == 1 ) {
+         texcolor = texture2D(myTexture, vTextureCoord); 
+          gl_FragColor = texcolor; 
+        }
+
+        //use the environment cubemap/reflection
+        else if (use_texture == 2){
+           view_vector = normalize(vEyeVec);
+           ref = normalize(reflect(-view_vector, N));  // in eye space
+           ref = vec3(uV2WMatrix*vec4(ref,0));   // convert to world space
+           env_color = textureCube(cubeMap, ref);
+           gl_FragColor = env_color; 
+        }
+
+        //reguler color/no textures
+        else gl_FragColor = vColor; 
+    }
+</script>
+
+<!--  ************** Vertex Shader ************* --> 
+<script id="shader-vs" type="x-shader/x-vertex">
+    attribute vec3 aVertexPosition;
+    attribute vec3 aVertexNormal;
+    attribute vec2 aTextureCoord;
+
+   uniform mat4 uMMatrix; 
+   uniform mat4 uVMatrix;
+   uniform mat4 uPMatrix;
+   uniform mat4 uNMatrix; 
+   uniform mat4 uV2WMatrix;
+
+   varying vec2 vTextureCoord;
+   varying vec3 vEyeVec; 
+   varying vec3 vNormal;
+
+    void main(void) {
+        vec4 vertex = uVMatrix * uMMatrix* vec4(aVertexPosition, 1.0);
+        vNormal = vec3(uNMatrix * vec4(aVertexNormal, 1.0));
+        vEyeVec = -vec3(vertex.xyz);
+        vTextureCoord = aTextureCoord;
+        gl_Position = uPMatrix*uVMatrix*uMMatrix*vec4(aVertexPosition, 1.0);
+    }
+
+</script>
+
+
+<script type="text/javascript" src="shaders_setup.js"></script>
+<script type="text/javascript" src="Lab5.js"></script>
+
+
+</head>
+
+
+<body onload="webGLStart();">
+
+      <div style="float: left;">
+    <canvas id="code03-canvas"style="border:none;"width="625"height="625"></canvas>
+      </div>
+       <div style="float: left; padding-left: 15px">
+            <a href="stevengwRobot.html"><button>Go To See the Robot</button></a>
+<h4> Texture:  </h4>
+    <button  onclick="texture(0)"> NO  </button>
+    <button  onclick="texture(1)"> Texture </button>
+    <button  onclick="texture(2)"> Cubemap </button>
+
+<h4>Camera</h4>
+    <button  onclick="camera(0)">Up</button>
+    <button  onclick="camera(1)">Down</button>
+    <button  onclick="camera(2)">Forward</button>
+    <button  onclick="camera(3)">Back</button>
+
+    <h4>Center Of Interest</h4>
+    <button  onclick="interest(0)">Up</button>
+    <button  onclick="interest(1)">Down</button>
+    <button  onclick="interest(2)">Left</button>
+    <button  onclick="interest(3)">Right</button>
+    <br/>
+     
+    <div>
+    <h4>
+    Click and drag left mouse to rotate view
+    </h4>
+     <button  onclick="rotationtype(0)">Horizontal rotate</button>
+      <button  onclick="rotationtype(1)">All ways rotate</button>
+      <br/>
+    <button  onclick="redraw()"> Go Back! </button>   
+    </div>
+           </div>
+     <div style="float: left; padding-left: 15px">
+         <p>
+    <h4>Lighting:</h4>y to move light forward<br> Y to move light back<br>g to move light left<br> G to move light right<br> h to move light up <br> H to move light down<br>
+</p>
+       </div>  
+
+</body>
+
+</html>
+
